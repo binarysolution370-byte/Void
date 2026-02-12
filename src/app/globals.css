@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --void-black: #060608;
+  --void-white: #f7f7fb;
+  --void-gray: #10131c;
+  --void-soft-gray: #9ca4b5;
+  --void-cyan: #35f0d2;
+  --void-pink: #ff4f9d;
+  --void-font: "Trebuchet MS", "Franklin Gothic Medium", "Arial Narrow", sans-serif;
+  --void-font-display: "Impact", "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% -5%, rgba(255, 79, 157, 0.18), transparent 32%),
+    radial-gradient(circle at 85% 0%, rgba(53, 240, 210, 0.22), transparent 36%),
+    linear-gradient(180deg, #0b0d14 0%, #060608 45%, #030304 100%);
+  color: var(--void-white);
+  font-family: var(--void-font);
+  line-height: 1.6;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.25;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.void-layout {
+  min-height: 100dvh;
+}
+
+.void-shell {
+  animation: fade-in 550ms ease-out both;
+}
+
+.void-hero {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background:
+    linear-gradient(130deg, rgba(255, 79, 157, 0.13), rgba(53, 240, 210, 0.11)),
+    rgba(13, 16, 24, 0.85);
+  padding: 1.5rem;
+}
+
+.void-display {
+  font-family: var(--void-font-display);
+  font-size: clamp(2.15rem, 9vw, 4.6rem);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.void-kicker {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--void-cyan);
+}
+
+.void-card {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    rgba(10, 13, 19, 0.75);
+  backdrop-filter: blur(2px);
+  padding: 1.25rem;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+  animation: fade-up 500ms ease-out both;
+}
+
+.void-label {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.void-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.01);
+  color: var(--void-white);
+  padding: 0.875rem;
+  border-radius: 0;
+  resize: none;
+  transition: border-color 220ms ease, background-color 220ms ease, box-shadow 220ms ease;
+}
+
+.void-input:focus-visible {
+  outline: none;
+  border-color: var(--void-cyan);
+  box-shadow: 0 0 0 3px rgba(53, 240, 210, 0.22);
+  background: rgba(53, 240, 210, 0.04);
+}
+
+.void-button {
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  color: var(--void-white);
+  padding: 0.625rem 1rem;
+  border-radius: 0;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.void-button:hover,
+.void-button:focus-visible {
+  background: linear-gradient(140deg, var(--void-cyan), var(--void-pink));
+  border-color: transparent;
+  color: #050507;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(53, 240, 210, 0.25);
+}
+
+.void-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.void-muted {
+  color: var(--void-soft-gray);
+}
+
+.void-nav-link[aria-current="page"] {
+  background: linear-gradient(140deg, rgba(53, 240, 210, 0.9), rgba(255, 79, 157, 0.9));
+  border-color: transparent;
+  color: #050507;
+}
+
+.void-accent-line {
+  height: 1px;
+  background: linear-gradient(90deg, var(--void-cyan), transparent 85%);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .void-shell,
+  .void-card {
+    animation: none;
+  }
+
+  .void-button {
+    transition: none;
+  }
+}
