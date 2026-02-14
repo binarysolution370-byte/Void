@@ -23,6 +23,7 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   const [status, setStatus] = useState<string>("");
   const [lastSecretId, setLastSecretId] = useState<string | null>(null);
   const [echoChoiceDone, setEchoChoiceDone] = useState(false);
+  const [echoBusy, setEchoBusy] = useState(false);
   const [ritualUnlocked, setRitualUnlocked] = useState(false);
   const [capsuleFlag, setCapsuleFlag] = useState(false);
   const [sealFlag, setSealFlag] = useState(false);
@@ -58,15 +59,18 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   }
 
   async function onEnableEcho() {
-    if (!lastSecretId) {
+    if (!lastSecretId || echoBusy) {
       return;
     }
+    setEchoBusy(true);
+    setEchoChoiceDone(true);
     if (typeof Notification !== "undefined") {
       try {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
           setStatus("Notification refusee. Silence conserve.");
           setEchoChoiceDone(true);
+          setEchoBusy(false);
           return;
         }
       } catch {
@@ -80,20 +84,28 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
       setStatus("Le geste est fait.");
       setEchoChoiceDone(true);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Impossible d'activer l'echo.");
+      setStatus(error instanceof Error ? `Echo: ${error.message}` : "Impossible d'activer l'echo.");
+      setEchoChoiceDone(false);
+    } finally {
+      setEchoBusy(false);
     }
   }
 
   async function onDisableEcho() {
-    if (!lastSecretId) {
+    if (!lastSecretId || echoBusy) {
       return;
     }
+    setEchoBusy(true);
+    setEchoChoiceDone(true);
     try {
       await setEchoOptIn(lastSecretId, false);
       setStatus("Le secret part seul.");
       setEchoChoiceDone(true);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Impossible de valider ce choix.");
+      setStatus(error instanceof Error ? `Echo: ${error.message}` : "Impossible de valider ce choix.");
+      setEchoChoiceDone(false);
+    } finally {
+      setEchoBusy(false);
     }
   }
 
@@ -142,11 +154,11 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
         <div className="mt-5 border border-white/20 p-3 text-sm">
           <p className="mb-2">Si le vide te repond, veux-tu le savoir ?</p>
           <div className="flex gap-2">
-            <button type="button" className="void-button" onClick={onEnableEcho}>
-              OUI
+            <button type="button" className="void-button" onClick={onEnableEcho} disabled={echoBusy}>
+              {echoBusy ? "..." : "OUI"}
             </button>
-            <button type="button" className="void-button" onClick={onDisableEcho}>
-              NON
+            <button type="button" className="void-button" onClick={onDisableEcho} disabled={echoBusy}>
+              {echoBusy ? "..." : "NON"}
             </button>
           </div>
         </div>
