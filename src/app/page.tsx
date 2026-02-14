@@ -1,5 +1,6 @@
 import { SecretForm } from "@/components/secret-form";
 import { SecretReceiver } from "@/components/secret-receiver";
+import { LivePulse } from "@/components/live-pulse";
 
 export default function HomePage() {
   return (
@@ -10,9 +11,9 @@ export default function HomePage() {
           <br />
           tire. repars.
         </h1>
-        <p className="mt-3 text-[13px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }}>
-          aucun profil. aucune validation. juste des voix.
-        </p>
+        <div className="mt-3">
+          <LivePulse />
+        </div>
       </header>
       <div className="void-reveal-item" style={{ ["--void-stagger" as never]: 1 }}>
         <SecretForm />

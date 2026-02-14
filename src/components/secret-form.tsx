@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import type React from "react";
 import { createSecret, setEchoOptIn } from "@/lib/api";
 import { subscribeToEchoPush } from "@/lib/push";
 import { isMonetizationUnlocked } from "@/lib/monetization";
@@ -25,6 +26,13 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   const [echoChoiceDone, setEchoChoiceDone] = useState(false);
   const [echoBusy, setEchoBusy] = useState(false);
   const [justDroppedUntil, setJustDroppedUntil] = useState<number>(0);
+  const [placeholder, setPlaceholder] = useState("ce que tu ne diras jamais a voix haute...");
+  const [placeholderFading, setPlaceholderFading] = useState(false);
+  const [nudgePulse, setNudgePulse] = useState(false);
+  const [releasePhase, setReleasePhase] = useState<"idle" | "releasing" | "silence" | "confirm">("idle");
+  const [floatFragment, setFloatFragment] = useState<null | { text: string; left: number; top: number; tiltDeg: number }>(
+    null
+  );
   const [ritualUnlocked, setRitualUnlocked] = useState(false);
   const [capsuleFlag, setCapsuleFlag] = useState(false);
   const [sealFlag, setSealFlag] = useState(false);
@@ -42,6 +50,85 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
     setSealFlag(isFlagEnabled({ name: "seal_position_test", rollout: 20 }));
   }, []);
 
+  useEffect(() => {
+    function onPulse() {
+      setNudgePulse(true);
+      window.setTimeout(() => setNudgePulse(false), 650);
+    }
+    window.addEventListener("void:pulseForm", onPulse as EventListener);
+    return () => window.removeEventListener("void:pulseForm", onPulse as EventListener);
+  }, []);
+
+  useEffect(() => {
+    // Writing nudge: 8s desktop / 12s mobile, cancelled on focus or typing.
+    if (releasePhase !== "idle") {
+      return;
+    }
+    const mobile = typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)").matches : false;
+    const firstDelay = mobile ? 12000 : 8000;
+    const secondDelay = mobile ? 24000 : 20000;
+
+    let interacted = false;
+    let t1 = 0;
+    let t2 = 0;
+    let fade1 = 0;
+    let fade2 = 0;
+
+    function stop() {
+      interacted = true;
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(fade1);
+      window.clearTimeout(fade2);
+    }
+
+    function onFocus() {
+      stop();
+    }
+
+    function onType() {
+      if (content.trim().length > 0) {
+        stop();
+      }
+    }
+
+    const textarea = document.getElementById("secret-input");
+    textarea?.addEventListener("focus", onFocus);
+
+    t1 = window.setTimeout(() => {
+      if (interacted) return;
+      const pool = [
+        "qu'est-ce que tu gardes pour toi en ce moment ?",
+        "il y a quelque chose que tu n'as jamais dit ?",
+        "ici personne ne saura que c'est toi.",
+        "ecris. lache. disparais.",
+        "qu'est-ce qui pese ce soir ?",
+        "personne ne juge ici.",
+        "tu peux tout dire. vraiment."
+      ];
+      const next = pool[Math.floor(Math.random() * pool.length)] ?? pool[0];
+      setPlaceholderFading(true);
+      fade1 = window.setTimeout(() => {
+        setPlaceholder(next);
+        fade2 = window.setTimeout(() => setPlaceholderFading(false), 300);
+      }, 300);
+    }, firstDelay);
+
+    t2 = window.setTimeout(() => {
+      if (interacted) return;
+      setNudgePulse(true);
+      window.setTimeout(() => setNudgePulse(false), 650);
+    }, secondDelay);
+
+    onType();
+
+    return () => {
+      textarea?.removeEventListener("focus", onFocus);
+      stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, releasePhase]);
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) {
@@ -50,7 +137,27 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
     setIsSubmitting(true);
     setStatus("");
     try {
+      const beforeText = content;
       const created = await createSecret(content);
+      // Release animation orchestration
+      const formEl = document.getElementById("void-drop");
+      if (formEl) {
+        const rect = formEl.getBoundingClientRect();
+        const tiltDeg = Math.random() < 0.5 ? -2 : 2;
+        setFloatFragment({
+          text: beforeText.length > 60 ? `${beforeText.slice(0, 57).trim()}...` : beforeText,
+          left: Math.round(rect.left + rect.width * 0.12),
+          top: Math.round(rect.top + rect.height * 0.45),
+          tiltDeg
+        });
+        window.setTimeout(() => setFloatFragment(null), 1250);
+      }
+
+      setReleasePhase(window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "confirm" : "releasing");
+      window.setTimeout(() => setReleasePhase("silence"), 400);
+      window.setTimeout(() => setReleasePhase("confirm"), 900);
+      window.setTimeout(() => setReleasePhase("idle"), 1400);
+
       setContent("");
       setLastSecretId(created.id);
       setEchoChoiceDone(false);
@@ -116,8 +223,8 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   }
 
   return (
-    <section aria-label="Deposer un secret">
-      <div className="void-glass void-form relative">
+    <section aria-label="Deposer un secret" id="void-drop">
+      <div className={`void-glass void-form relative ${nudgePulse ? "void-form--nudge" : ""} ${releasePhase === "releasing" ? "void-form--releasing" : ""}`}>
         <textarea
           id="secret-input"
           aria-label="Secret"
@@ -125,7 +232,8 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
           value={content}
           maxLength={5000}
           onChange={(event) => setContent(event.target.value)}
-          placeholder="ce que tu ne diras jamais a voix haute..."
+          placeholder={placeholder}
+          style={{ opacity: placeholderFading ? 0 : 1, transition: "opacity 300ms ease" }}
           required
         />
 
@@ -141,7 +249,24 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
             {isSubmitting ? "..." : showDropped ? "↑ lache" : "LACHER"}
           </button>
         </form>
+
+        {releasePhase === "confirm" ? <div className="void-release-center">lache.</div> : null}
       </div>
+
+      {floatFragment ? (
+        <div
+          className="void-release-float"
+          style={
+            {
+              left: floatFragment.left,
+              top: floatFragment.top,
+              ["--tilt" as never]: `${floatFragment.tiltDeg}deg`
+            } as React.CSSProperties
+          }
+        >
+          {floatFragment.text}
+        </div>
+      ) : null}
 
       {status ? (
         <p className="mt-3 text-[12px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }} aria-live="polite">

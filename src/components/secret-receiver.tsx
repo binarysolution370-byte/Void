@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { keepSecret } from "@/lib/keep";
 import { deleteReply, pullSecret, releaseSecret, replySecret } from "@/lib/api";
 import type { Secret } from "@/lib/types";
@@ -31,6 +31,9 @@ export function SecretReceiver() {
   const [graceDeadlineMs, setGraceDeadlineMs] = useState<number | null>(null);
   const [clockMs, setClockMs] = useState<number>(Date.now());
   const [replyOpen, setReplyOpen] = useState(false);
+  const [mirrorVisible, setMirrorVisible] = useState(false);
+  const [mirrorDim, setMirrorDim] = useState(false);
+  const mirrorTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setRitualUnlocked(isMonetizationUnlocked(7));
@@ -42,6 +45,43 @@ export function SecretReceiver() {
     const timer = window.setInterval(() => setClockMs(Date.now()), 250);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!currentSecret) {
+      setMirrorVisible(false);
+      setMirrorDim(false);
+      if (mirrorTimerRef.current) {
+        window.clearTimeout(mirrorTimerRef.current);
+        mirrorTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (sessionStorage.getItem("void_mirror_shown") === "true") {
+      return;
+    }
+
+    if (mirrorTimerRef.current) {
+      window.clearTimeout(mirrorTimerRef.current);
+      mirrorTimerRef.current = null;
+    }
+
+    mirrorTimerRef.current = window.setTimeout(() => {
+      setMirrorVisible(true);
+      sessionStorage.setItem("void_mirror_shown", "true");
+    }, 4000);
+
+    return () => {
+      if (mirrorTimerRef.current) {
+        window.clearTimeout(mirrorTimerRef.current);
+        mirrorTimerRef.current = null;
+      }
+    };
+  }, [currentSecret]);
 
   useEffect(() => {
     if (!currentSecret || !sealBroken) {
@@ -156,6 +196,22 @@ export function SecretReceiver() {
     }
   }
 
+  function cancelMirror() {
+    setMirrorVisible(false);
+    if (mirrorTimerRef.current) {
+      window.clearTimeout(mirrorTimerRef.current);
+      mirrorTimerRef.current = null;
+    }
+  }
+
+  function onMirrorWrite() {
+    setMirrorDim(true);
+    cancelMirror();
+    window.dispatchEvent(new Event("void:pulseForm"));
+    const target = document.getElementById("void-drop");
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   function onKeep() {
     if (!currentSecret) {
       return;
@@ -191,7 +247,7 @@ export function SecretReceiver() {
         </div>
       ) : (
         <div className="mt-5 space-y-4">
-          <article className="void-secretcard">
+          <article className={`void-secretcard ${mirrorDim ? "void-secretcard--dim" : ""}`}>
             {currentSecret.is_sealed && !sealBroken ? (
               <div>
                 <p className="void-secretmeta">sceau intact</p>
@@ -208,16 +264,49 @@ export function SecretReceiver() {
               </>
             )}
             <div className="void-actions" aria-label="Actions">
-              <button type="button" className="void-action" onClick={() => setReplyOpen((v) => !v)} disabled={Boolean(postedReplyId)}>
+              <button
+                type="button"
+                className="void-action"
+                onClick={() => {
+                  cancelMirror();
+                  setReplyOpen((v) => !v);
+                }}
+                disabled={Boolean(postedReplyId)}
+              >
                 repondre
               </button>
-              <button type="button" className="void-action void-action--keep" onClick={onKeep}>
+              <button
+                type="button"
+                className="void-action void-action--keep"
+                onClick={() => {
+                  cancelMirror();
+                  onKeep();
+                }}
+              >
                 garder
               </button>
-              <button type="button" className="void-action void-action--release" onClick={onRelease} disabled={isActioning}>
+              <button
+                type="button"
+                className="void-action void-action--release"
+                onClick={() => {
+                  cancelMirror();
+                  void onRelease();
+                }}
+                disabled={isActioning}
+              >
                 laisser filer
               </button>
             </div>
+
+            {mirrorVisible ? (
+              <div className="mirror-nudge" aria-label="Invitation a ecrire">
+                <div className="mirror-line" />
+                <p className="mirror-text">tu as lu leur secret. tu veux partager le tien ?</p>
+                <button type="button" className="mirror-cta" onClick={onMirrorWrite}>
+                  oui, ecrire quelque chose
+                </button>
+              </div>
+            ) : null}
           </article>
 
           {replyOpen && !postedReplyId ? (

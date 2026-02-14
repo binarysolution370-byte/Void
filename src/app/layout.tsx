@@ -6,6 +6,7 @@ import { BottomNav } from "@/components/bottom-nav";
 import { VoidIntro } from "@/components/void-intro";
 import { VoidCursor } from "@/components/void-cursor";
 import { VoidReveal } from "@/components/void-reveal";
+import { VoidBackdrop } from "@/components/void-backdrop";
 
 export const metadata: Metadata = {
   title: "VOID",
@@ -29,6 +30,7 @@ export default function RootLayout({
       </head>
       <body className="void-layout">
         <VisitTracker />
+        <VoidBackdrop />
         <VoidIntro />
         <VoidReveal />
         <VoidCursor />
