@@ -224,7 +224,9 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
 
   return (
     <section aria-label="Deposer un secret" id="void-drop">
-      <div className={`void-glass void-form relative ${nudgePulse ? "void-form--nudge" : ""} ${releasePhase === "releasing" ? "void-form--releasing" : ""}`}>
+      <div
+        className={`void-glass void-glass--strong void-form relative ${nudgePulse ? "void-form--nudge" : ""} ${releasePhase === "releasing" ? "void-form--releasing" : ""}`}
+      >
         <textarea
           id="secret-input"
           aria-label="Secret"
