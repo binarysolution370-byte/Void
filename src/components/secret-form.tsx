@@ -24,12 +24,17 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   const [lastSecretId, setLastSecretId] = useState<string | null>(null);
   const [echoChoiceDone, setEchoChoiceDone] = useState(false);
   const [echoBusy, setEchoBusy] = useState(false);
+  const [justDroppedUntil, setJustDroppedUntil] = useState<number>(0);
   const [ritualUnlocked, setRitualUnlocked] = useState(false);
   const [capsuleFlag, setCapsuleFlag] = useState(false);
   const [sealFlag, setSealFlag] = useState(false);
 
   const remaining = useMemo(() => MAX_CHARS - content.length, [content.length]);
   const canSubmit = content.trim().length > 0 && content.length <= MAX_CHARS && !isSubmitting;
+  const counterValue = Math.max(0, remaining);
+  const counterWarn = counterValue <= 20;
+  const counterShake = remaining < 0;
+  const showDropped = Date.now() < justDroppedUntil;
 
   useEffect(() => {
     setRitualUnlocked(isMonetizationUnlocked(7));
@@ -49,7 +54,8 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
       setContent("");
       setLastSecretId(created.id);
       setEchoChoiceDone(false);
-      setStatus("Secret depose.");
+      setJustDroppedUntil(Date.now() + 1500);
+      setStatus("");
       onSuccess?.();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Echec de l'envoi.");
@@ -110,66 +116,83 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   }
 
   return (
-    <section className="void-card" aria-labelledby="drop-secret-title">
-      <p className="void-kicker mb-1">Etape 1</p>
-      <h2 id="drop-secret-title" className="mb-2 text-2xl font-semibold sm:text-3xl">
-        Lacher un secret
-      </h2>
-      <div className="void-accent-line mb-4" />
-      <p className="void-muted mb-4 text-sm">300 caracteres max. Aucune trace perso. Aucune reaction sociale.</p>
-      <form className="space-y-3" onSubmit={onSubmit}>
-        <label htmlFor="secret-input" className="void-label">
-          Secret
-        </label>
+    <section aria-label="Deposer un secret">
+      <div className="void-glass void-form relative">
         <textarea
           id="secret-input"
-          className="void-input min-h-28"
+          aria-label="Secret"
+          className="void-textarea"
           value={content}
           maxLength={5000}
           onChange={(event) => setContent(event.target.value)}
-          placeholder="Ecris ici, puis laisse tomber."
+          placeholder="ce que tu ne diras jamais a voix haute..."
           required
         />
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="void-muted text-sm" aria-live="polite">
-            {remaining} restants
-          </p>
-          <button type="submit" className="void-button" disabled={!canSubmit}>
-            {isSubmitting ? "Envoi..." : "LACHER"}
-          </button>
+
+        <div
+          className={`void-counter ${counterWarn ? "void-counter--warn" : ""} ${counterShake ? "void-counter--shake" : ""}`}
+          aria-live="polite"
+        >
+          {counterValue}
         </div>
-        {status ? (
-          <p className="text-sm font-medium" aria-live="polite">
-            {status}
-          </p>
-        ) : null}
-      </form>
-      <div className="mt-4 space-y-2">
-        <OfferLongLetter currentLength={content.length} unlocked={ritualUnlocked} />
-        <OfferCapsule unlocked={ritualUnlocked && capsuleFlag} />
-        <OfferSeal unlocked={ritualUnlocked && sealFlag} />
-        <SeasonalRitual unlocked={ritualUnlocked} />
+
+        <form onSubmit={onSubmit}>
+          <button type="submit" className="void-btn-primary" disabled={!canSubmit}>
+            {isSubmitting ? "..." : showDropped ? "↑ lache" : "LACHER"}
+          </button>
+        </form>
       </div>
+
+      {status ? (
+        <p className="mt-3 text-[12px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }} aria-live="polite">
+          {status}
+        </p>
+      ) : null}
+
       {lastSecretId && !echoChoiceDone ? (
-        <div className="mt-5 border border-white/20 p-3 text-sm">
-          <p className="mb-2">Si le vide te repond, veux-tu le savoir ?</p>
-          <div className="flex gap-2">
-            <button type="button" className="void-button" onClick={onEnableEcho} disabled={echoBusy}>
-              {echoBusy ? "..." : "OUI"}
+        <div className="mt-4 void-glass p-4" style={{ borderRadius: "12px" }}>
+          <p className="text-[13px]" style={{ fontWeight: 300, color: "var(--void-text-secondary)" }}>
+            Si le vide te repond, veux-tu le savoir ?
+          </p>
+          <div className="mt-3 flex gap-10">
+            <button type="button" onClick={onEnableEcho} disabled={echoBusy} className="void-action" style={{ fontSize: 11 }}>
+              oui
             </button>
-            <button type="button" className="void-button" onClick={onDisableEcho} disabled={echoBusy}>
-              {echoBusy ? "..." : "NON"}
+            <button
+              type="button"
+              onClick={onDisableEcho}
+              disabled={echoBusy}
+              className="void-action void-action--release"
+              style={{ fontSize: 11 }}
+            >
+              non
             </button>
           </div>
         </div>
       ) : null}
+
       {lastSecretId ? (
-        <p className="mt-3 text-xs">
+        <p className="mt-3 text-[11px]" style={{ color: "var(--void-text-ghost)", fontWeight: 300 }}>
           <Link className="underline underline-offset-4" href={`/echo/${lastSecretId}`}>
             Voir l&apos;echo de ce secret
           </Link>
         </p>
       ) : null}
+
+      <details className="mt-4" style={{ borderTop: "1px solid var(--void-border)", paddingTop: 16 }}>
+        <summary
+          className="text-[11px]"
+          style={{ cursor: "pointer", color: "var(--void-text-ghost)", letterSpacing: "0.1em", fontWeight: 300 }}
+        >
+          plus d&apos;espace
+        </summary>
+        <div className="mt-3 space-y-2">
+          <OfferLongLetter currentLength={content.length} unlocked={ritualUnlocked} />
+          <OfferCapsule unlocked={ritualUnlocked && capsuleFlag} />
+          <OfferSeal unlocked={ritualUnlocked && sealFlag} />
+          <SeasonalRitual unlocked={ritualUnlocked} />
+        </div>
+      </details>
     </section>
   );
 }

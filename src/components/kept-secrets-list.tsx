@@ -124,41 +124,88 @@ export function KeptSecretsList() {
   }
 
   return (
-    <section className="void-card" aria-labelledby="kept-title">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="void-kicker mb-1">Memoire locale</p>
-          <h1 id="kept-title" className="text-2xl font-semibold sm:text-3xl">
-            Mon Vide
-          </h1>
-          <p className="void-muted text-sm">{itemCountLabel}</p>
-        </div>
+    <section className="void-container space-y-5" aria-labelledby="kept-title">
+      <header className="pt-2">
+        <h1
+          id="kept-title"
+          className="text-[32px] leading-tight"
+          style={{ fontFamily: "var(--void-font-display)", fontWeight: 800, letterSpacing: "-0.02em" }}
+        >
+          MON VIDE
+        </h1>
+        <p className="mt-2 text-[14px]" style={{ fontWeight: 300, fontStyle: "italic", color: "var(--void-text-ghost)" }}>
+          les secrets que tu as choisi de ne pas oublier
+        </p>
+        <div style={{ borderTop: "1px solid var(--void-border)", marginTop: 24 }} />
+        <p className="mt-3 text-[11px]" style={{ color: "var(--void-text-ghost)", fontWeight: 300 }}>
+          {itemCountLabel}
+        </p>
         {hasItems ? (
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="void-button text-sm" onClick={() => exportAsText(items)}>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button type="button" className="void-btn-outline" onClick={() => exportAsText(items)}>
               EXPORT TXT
             </button>
-            <button type="button" className="void-button text-sm" onClick={() => exportAsImage(items)}>
+            <button type="button" className="void-btn-outline" onClick={() => exportAsImage(items)}>
               EXPORT PNG
             </button>
           </div>
         ) : null}
-      </div>
-      <div className="void-accent-line mb-4" />
+      </header>
 
       {!hasItems ? (
-        <p className="void-muted text-sm">Rien de garde pour le moment.</p>
+        <div className="text-center">
+          <p style={{ fontStyle: "italic", fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 15 }}>
+            tu n&apos;as encore rien garde.
+          </p>
+          <p className="mt-3">
+            <a
+              href="/"
+              style={{
+                fontFamily: "var(--void-font-display)",
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: "0.1em",
+                color: "var(--void-glow)",
+                textTransform: "uppercase",
+                textDecoration: "underline",
+                textUnderlineOffset: 6
+              }}
+            >
+              ← retourner au puits
+            </a>
+          </p>
+        </div>
       ) : (
-        <ul className="space-y-3" aria-label="Secrets gardes">
+        <ul className="space-y-0" aria-label="Secrets gardes">
           {items.map((item) => (
-            <li key={item.id} className="border border-white/30 bg-black/25 p-4">
-              <p className="mb-3 whitespace-pre-wrap break-words">{item.content}</p>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <time className="void-muted text-sm" dateTime={item.keptAt}>
+            <li
+              key={item.id}
+              style={{
+                borderBottom: "1px solid var(--void-border)",
+                padding: "16px 0 16px 20px",
+                borderLeft: "2px solid var(--void-border-glow)"
+              }}
+            >
+              <p className="whitespace-pre-wrap break-words" style={{ fontWeight: 300, fontStyle: "italic", fontSize: 16, lineHeight: 1.7 }}>
+                {item.content}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <time style={{ color: "var(--void-text-ghost)", fontWeight: 300, fontSize: 11 }} dateTime={item.keptAt}>
                   {new Date(item.keptAt).toLocaleString("fr-FR")}
                 </time>
-                <button type="button" className="void-button text-sm" onClick={() => onDelete(item.id)}>
-                  SUPPRIMER
+                <button
+                  type="button"
+                  onClick={() => onDelete(item.id)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--void-text-ghost)",
+                    fontWeight: 300,
+                    fontSize: 11,
+                    cursor: "pointer"
+                  }}
+                >
+                  supprimer
                 </button>
               </div>
             </li>
@@ -166,11 +213,16 @@ export function KeptSecretsList() {
         </ul>
       )}
 
-      <div className="mt-4 space-y-2">
-        <OfferPaper unlocked={ritualUnlocked} />
-        <OfferGift unlocked={ritualUnlocked && giftFlag} />
-        <OfferSanctuary unlocked={ritualUnlocked && sanctuaryFlag} />
-      </div>
+      <details style={{ borderTop: "1px solid var(--void-border)", paddingTop: 16 }}>
+        <summary className="text-[11px]" style={{ cursor: "pointer", color: "var(--void-text-ghost)", letterSpacing: "0.1em", fontWeight: 300 }}>
+          rituels
+        </summary>
+        <div className="mt-3 space-y-2">
+          <OfferPaper unlocked={ritualUnlocked} />
+          <OfferGift unlocked={ritualUnlocked && giftFlag} />
+          <OfferSanctuary unlocked={ritualUnlocked && sanctuaryFlag} />
+        </div>
+      </details>
 
       {ritualStatus ? <p className="mt-3 text-sm">{ritualStatus}</p> : null}
       {history.length > 0 ? (

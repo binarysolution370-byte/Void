@@ -39,17 +39,28 @@ export function EchoThread({ secretId }: EchoThreadProps) {
   }, [secretId]);
 
   return (
-    <section className="void-card space-y-4" aria-labelledby="echo-title">
-      <p className="void-kicker">L&apos;Echo</p>
-      <h1 id="echo-title" className="text-2xl font-semibold sm:text-3xl">
-        Le vide a parle
-      </h1>
-      <div className="void-accent-line" />
-      {status ? <p className="void-muted text-sm">{status}</p> : null}
+    <section className="void-container space-y-4" aria-labelledby="echo-title">
+      <header className="pt-2">
+        <h1
+          id="echo-title"
+          className="text-balance text-[32px] leading-tight"
+          style={{ fontFamily: "var(--void-font-display)", fontWeight: 800, letterSpacing: "-0.02em" }}
+        >
+          l&apos;echo
+        </h1>
+        <p className="mt-2 text-[13px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300, fontStyle: "italic" }}>
+          le vide a bouge.
+        </p>
+      </header>
+      {status ? (
+        <p style={{ color: "var(--void-text-ghost)", fontWeight: 300, fontStyle: "italic" }}>{status.toLowerCase()}</p>
+      ) : null}
       <div className="space-y-3">
         {replies.map((reply) => (
-          <article key={reply.id} className="border border-white/20 bg-black/30 p-3">
-            <p className="whitespace-pre-wrap break-words">{reply.content}</p>
+          <article key={reply.id} className="void-glass" style={{ borderRadius: "20px", padding: "18px 18px" }}>
+            <p className="whitespace-pre-wrap break-words" style={{ fontWeight: 300, fontStyle: "italic", fontSize: 16, lineHeight: 1.8 }}>
+              {reply.content}
+            </p>
           </article>
         ))}
       </div>

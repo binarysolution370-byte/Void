@@ -3,17 +3,23 @@ import { SecretReceiver } from "@/components/secret-receiver";
 
 export default function HomePage() {
   return (
-    <div className="space-y-6">
-      <section className="void-hero">
-        <p className="void-kicker mb-3">Reseau social fantome</p>
-        <h1 className="void-display mb-4">Laisse tomber. Tire. Repars.</h1>
-        <p className="max-w-2xl text-sm sm:text-base">
-          VOID capte l&apos;attention des la premiere seconde, puis coupe le bruit. Aucun profil, aucune validation,
-          juste des secrets anonymes qui circulent.
+    <div className="void-container space-y-5">
+      <header className="pt-2 void-reveal-item" style={{ ["--void-stagger" as never]: 0 }}>
+        <h1 className="text-balance font-[800] tracking-[-0.02em] text-[32px] leading-tight" style={{ fontFamily: "var(--void-font-display)" }}>
+          laisse tomber.
+          <br />
+          tire. repars.
+        </h1>
+        <p className="mt-3 text-[13px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }}>
+          aucun profil. aucune validation. juste des voix.
         </p>
-      </section>
-      <SecretForm />
-      <SecretReceiver />
+      </header>
+      <div className="void-reveal-item" style={{ ["--void-stagger" as never]: 1 }}>
+        <SecretForm />
+      </div>
+      <div className="void-reveal-item" style={{ ["--void-stagger" as never]: 2 }}>
+        <SecretReceiver />
+      </div>
     </div>
   );
 }

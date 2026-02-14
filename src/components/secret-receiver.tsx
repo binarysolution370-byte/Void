@@ -30,6 +30,7 @@ export function SecretReceiver() {
   const [postedReplyId, setPostedReplyId] = useState<string | null>(null);
   const [graceDeadlineMs, setGraceDeadlineMs] = useState<number | null>(null);
   const [clockMs, setClockMs] = useState<number>(Date.now());
+  const [replyOpen, setReplyOpen] = useState(false);
 
   useEffect(() => {
     setRitualUnlocked(isMonetizationUnlocked(7));
@@ -74,15 +75,17 @@ export function SecretReceiver() {
         setCurrentSecret(null);
         setSealBroken(false);
         setVisibleContent("");
+        setReplyOpen(false);
         setStatus(data.message);
       } else {
         setCurrentSecret(data);
         setReplyContent("");
         setPostedReplyId(null);
         setGraceDeadlineMs(null);
+        setReplyOpen(false);
         setSealBroken(!data.is_sealed);
         setVisibleContent(data.is_sealed ? "" : data.content);
-        setStatus("Secret recu.");
+        setStatus("");
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Impossible de puiser.");
@@ -102,7 +105,8 @@ export function SecretReceiver() {
       setReplyContent("");
       setPostedReplyId(reply.id);
       setGraceDeadlineMs(Date.now() + 60 * 1000);
-      setStatus("Echo depose.");
+      setStatus("");
+      setReplyOpen(false);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Echec de la reponse.");
     } finally {
@@ -141,9 +145,10 @@ export function SecretReceiver() {
       setReplyContent("");
       setPostedReplyId(null);
       setGraceDeadlineMs(null);
+      setReplyOpen(false);
       setSealBroken(false);
       setVisibleContent("");
-      setStatus("Secret relache.");
+      setStatus("");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Echec du relachement.");
     } finally {
@@ -167,81 +172,103 @@ export function SecretReceiver() {
   const showUndo = Boolean(postedReplyId && graceRemainingMs > 0);
 
   return (
-    <section className="void-card" aria-labelledby="receiver-title">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="void-kicker mb-1">Etape 2</p>
-          <h2 id="receiver-title" className="text-2xl font-semibold sm:text-3xl">
-            Puiser
-          </h2>
-        </div>
-        <button type="button" className="void-button" onClick={onPull} disabled={isLoading}>
-          {isLoading ? "Recherche..." : "PUISER"}
+    <section aria-label="Puiser un secret">
+      <p className="void-sep">— ou —</p>
+      <div className="flex justify-center">
+        <button type="button" className="void-btn-outline" onClick={onPull} disabled={isLoading}>
+          {isLoading ? "..." : "PUISER"}
         </button>
       </div>
-      <div className="void-accent-line mb-4" />
 
       {!currentSecret ? (
-        <p className="void-muted min-h-14 text-sm sm:text-base">
-          {status || "Aucun secret dans les mains pour le moment."}
-        </p>
+        <div className="mt-5 text-center">
+          <p style={{ fontStyle: "italic", fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 16 }}>
+            {status || "le vide est silencieux pour l'instant."}
+          </p>
+          <p style={{ marginTop: 8, fontWeight: 300, fontSize: 10, letterSpacing: "0.1em", color: "var(--void-text-ghost)" }}>
+            reviens plus tard
+          </p>
+        </div>
       ) : (
-        <div className="space-y-4">
-          <article className="border border-white/30 bg-black/30 p-4">
+        <div className="mt-5 space-y-4">
+          <article className="void-secretcard">
             {currentSecret.is_sealed && !sealBroken ? (
-              <div className="space-y-2">
-                <p className="void-muted text-sm">Sceau {currentSecret.seal_type || "classique"} intact.</p>
-                <button type="button" className="void-button text-sm" onClick={() => setSealBroken(true)}>
-                  Briser le sceau
-                </button>
+              <div>
+                <p className="void-secretmeta">sceau intact</p>
+                <div className="mt-3">
+                  <button type="button" className="void-btn-outline" onClick={() => setSealBroken(true)}>
+                    BRISER
+                  </button>
+                </div>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap break-words text-base sm:text-lg">{visibleContent}</p>
+              <>
+                <p className="void-secrettext">{visibleContent}</p>
+                <p className="void-secretmeta">recu il y a quelques instants</p>
+              </>
             )}
+            <div className="void-actions" aria-label="Actions">
+              <button type="button" className="void-action" onClick={() => setReplyOpen((v) => !v)} disabled={Boolean(postedReplyId)}>
+                repondre
+              </button>
+              <button type="button" className="void-action void-action--keep" onClick={onKeep}>
+                garder
+              </button>
+              <button type="button" className="void-action void-action--release" onClick={onRelease} disabled={isActioning}>
+                laisser filer
+              </button>
+            </div>
           </article>
 
-          {!postedReplyId ? (
-            <div className="space-y-2">
-              <label htmlFor="reply-input" className="void-label">
-                Tu peux repondre. Ou ne rien dire.
-              </label>
+          {replyOpen && !postedReplyId ? (
+            <div className="void-glass void-form relative" style={{ borderRadius: "12px", padding: 18 }}>
+              <button
+                type="button"
+                aria-label="Fermer"
+                onClick={() => setReplyOpen(false)}
+                style={{
+                  position: "absolute",
+                  top: 10,
+                  right: 12,
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--void-text-ghost)",
+                  cursor: "pointer",
+                  fontSize: 18
+                }}
+              >
+                ×
+              </button>
               <textarea
-                id="reply-input"
-                className="void-input min-h-24"
+                aria-label="Reponse"
+                className="void-textarea"
                 maxLength={300}
                 value={replyContent}
                 onChange={(event) => setReplyContent(event.target.value)}
-                placeholder="Une voix. Une fois."
+                placeholder="ta reponse part dans le vide..."
               />
-              <p className="void-muted text-sm">{300 - replyContent.length} restants</p>
+              <div className={`void-counter ${300 - replyContent.length <= 20 ? "void-counter--warn" : ""}`}>
+                {Math.max(0, 300 - replyContent.length)}
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button type="button" className="void-btn-primary" style={{ width: "auto", paddingInline: 22 }} onClick={onReply} disabled={isActioning || replyContent.trim().length === 0}>
+                  ENVOYER
+                </button>
+              </div>
             </div>
-          ) : (
-            <p className="void-muted text-sm">Ta voix est deposee.</p>
-          )}
+          ) : null}
 
-          <div className="flex flex-wrap gap-2">
-            {!postedReplyId ? (
-              <button
-                type="button"
-                className="void-button"
-                onClick={onReply}
-                disabled={isActioning || replyContent.trim().length === 0}
-              >
-                REPONDRE
-              </button>
-            ) : null}
-            {showUndo ? (
-              <button type="button" className="void-button" onClick={onUndoReply} disabled={isActioning}>
-                RETIRER ({Math.ceil(graceRemainingMs / 1000)}s)
-              </button>
-            ) : null}
-            <button type="button" className="void-button" onClick={onKeep}>
-              GARDER
+          {postedReplyId ? (
+            <p style={{ fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 12, fontStyle: "italic" }}>
+              ta voix est deposee.
+            </p>
+          ) : null}
+
+          {showUndo ? (
+            <button type="button" className="void-btn-outline" onClick={onUndoReply} disabled={isActioning}>
+              RETIRER ({Math.ceil(graceRemainingMs / 1000)}s)
             </button>
-            <button type="button" className="void-button" onClick={onRelease} disabled={isActioning}>
-              LAISSER FILER
-            </button>
-          </div>
+          ) : null}
           <div className="space-y-2 pt-1">
             <OfferInk unlocked={ritualUnlocked && inkFlag} />
             <OfferEternity unlocked={ritualUnlocked && eternityFlag} />
@@ -250,7 +277,7 @@ export function SecretReceiver() {
       )}
 
       {status ? (
-        <p className="mt-3 text-sm font-medium" aria-live="polite">
+        <p className="mt-3 text-[12px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }} aria-live="polite">
           {status}
         </p>
       ) : null}
