@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { createSecret } from "@/lib/api";
+import Link from "next/link";
+import { createSecret, setEchoOptIn } from "@/lib/api";
+import { subscribeToEchoPush } from "@/lib/push";
 import { isMonetizationUnlocked } from "@/lib/monetization";
 import { OfferCapsule } from "@/components/offer-capsule";
 import { OfferLongLetter } from "@/components/offer-long-letter";
@@ -19,6 +21,8 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<string>("");
+  const [lastSecretId, setLastSecretId] = useState<string | null>(null);
+  const [echoChoiceDone, setEchoChoiceDone] = useState(false);
   const [ritualUnlocked, setRitualUnlocked] = useState(false);
   const [capsuleFlag, setCapsuleFlag] = useState(false);
   const [sealFlag, setSealFlag] = useState(false);
@@ -40,14 +44,56 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
     setIsSubmitting(true);
     setStatus("");
     try {
-      await createSecret(content);
+      const created = await createSecret(content);
       setContent("");
+      setLastSecretId(created.id);
+      setEchoChoiceDone(false);
       setStatus("Secret depose.");
       onSuccess?.();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Echec de l'envoi.");
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function onEnableEcho() {
+    if (!lastSecretId) {
+      return;
+    }
+    if (typeof Notification !== "undefined") {
+      try {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          setStatus("Notification refusee. Silence conserve.");
+          setEchoChoiceDone(true);
+          return;
+        }
+      } catch {
+        // no-op
+      }
+    }
+
+    try {
+      const subscription = await subscribeToEchoPush();
+      await setEchoOptIn(lastSecretId, true, undefined, subscription.toJSON());
+      setStatus("Le geste est fait.");
+      setEchoChoiceDone(true);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Impossible d'activer l'echo.");
+    }
+  }
+
+  async function onDisableEcho() {
+    if (!lastSecretId) {
+      return;
+    }
+    try {
+      await setEchoOptIn(lastSecretId, false);
+      setStatus("Le secret part seul.");
+      setEchoChoiceDone(true);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Impossible de valider ce choix.");
     }
   }
 
@@ -92,6 +138,26 @@ export function SecretForm({ onSuccess }: SecretFormProps) {
         <OfferSeal unlocked={ritualUnlocked && sealFlag} />
         <SeasonalRitual unlocked={ritualUnlocked} />
       </div>
+      {lastSecretId && !echoChoiceDone ? (
+        <div className="mt-5 border border-white/20 p-3 text-sm">
+          <p className="mb-2">Si le vide te repond, veux-tu le savoir ?</p>
+          <div className="flex gap-2">
+            <button type="button" className="void-button" onClick={onEnableEcho}>
+              OUI
+            </button>
+            <button type="button" className="void-button" onClick={onDisableEcho}>
+              NON
+            </button>
+          </div>
+        </div>
+      ) : null}
+      {lastSecretId ? (
+        <p className="mt-3 text-xs">
+          <Link className="underline underline-offset-4" href={`/echo/${lastSecretId}`}>
+            Voir l&apos;echo de ce secret
+          </Link>
+        </p>
+      ) : null}
     </section>
   );
 }

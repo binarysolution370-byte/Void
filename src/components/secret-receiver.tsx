@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { keepSecret } from "@/lib/keep";
-import { pullSecret, releaseSecret, replySecret } from "@/lib/api";
+import { deleteReply, pullSecret, releaseSecret, replySecret } from "@/lib/api";
 import type { Secret } from "@/lib/types";
 import { isMonetizationUnlocked } from "@/lib/monetization";
 import { OfferEternity } from "@/components/offer-eternity";
@@ -27,11 +27,19 @@ export function SecretReceiver() {
   const [eternityFlag, setEternityFlag] = useState(false);
   const [sealBroken, setSealBroken] = useState(false);
   const [visibleContent, setVisibleContent] = useState("");
+  const [postedReplyId, setPostedReplyId] = useState<string | null>(null);
+  const [graceDeadlineMs, setGraceDeadlineMs] = useState<number | null>(null);
+  const [clockMs, setClockMs] = useState<number>(Date.now());
 
   useEffect(() => {
     setRitualUnlocked(isMonetizationUnlocked(7));
     setInkFlag(isFlagEnabled({ name: "ink_effect_test", rollout: 40 }));
     setEternityFlag(isFlagEnabled({ name: "eternity_offer_test", rollout: 15 }));
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setClockMs(Date.now()), 250);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -70,6 +78,8 @@ export function SecretReceiver() {
       } else {
         setCurrentSecret(data);
         setReplyContent("");
+        setPostedReplyId(null);
+        setGraceDeadlineMs(null);
         setSealBroken(!data.is_sealed);
         setVisibleContent(data.is_sealed ? "" : data.content);
         setStatus("Secret recu.");
@@ -82,17 +92,38 @@ export function SecretReceiver() {
   }
 
   async function onReply() {
-    if (!currentSecret || replyContent.trim().length === 0 || replyContent.length > 200) {
+    if (!currentSecret || postedReplyId || replyContent.trim().length === 0 || replyContent.length > 300) {
       return;
     }
     setIsActioning(true);
     setStatus("");
     try {
-      await replySecret(currentSecret.id, replyContent);
+      const reply = await replySecret(currentSecret.id, replyContent);
       setReplyContent("");
-      setStatus("Reponse envoyee.");
+      setPostedReplyId(reply.id);
+      setGraceDeadlineMs(Date.now() + 60 * 1000);
+      setStatus("Echo depose.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Echec de la reponse.");
+    } finally {
+      setIsActioning(false);
+    }
+  }
+
+  async function onUndoReply() {
+    if (!postedReplyId || !graceDeadlineMs || Date.now() > graceDeadlineMs) {
+      setStatus("Fenetre de grace expiree.");
+      return;
+    }
+    setIsActioning(true);
+    setStatus("");
+    try {
+      await deleteReply(postedReplyId);
+      setPostedReplyId(null);
+      setGraceDeadlineMs(null);
+      setStatus("Echo retire.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Echec du retrait.");
     } finally {
       setIsActioning(false);
     }
@@ -108,6 +139,8 @@ export function SecretReceiver() {
       await releaseSecret(currentSecret.id);
       setCurrentSecret(null);
       setReplyContent("");
+      setPostedReplyId(null);
+      setGraceDeadlineMs(null);
       setSealBroken(false);
       setVisibleContent("");
       setStatus("Secret relache.");
@@ -129,6 +162,9 @@ export function SecretReceiver() {
     });
     setStatus("Secret garde dans Mon Vide.");
   }
+
+  const graceRemainingMs = graceDeadlineMs ? Math.max(0, graceDeadlineMs - clockMs) : 0;
+  const showUndo = Boolean(postedReplyId && graceRemainingMs > 0);
 
   return (
     <section className="void-card" aria-labelledby="receiver-title">
@@ -164,30 +200,41 @@ export function SecretReceiver() {
             )}
           </article>
 
-          <div className="space-y-2">
-            <label htmlFor="reply-input" className="void-label">
-              Repondre (200 max)
-            </label>
-            <textarea
-              id="reply-input"
-              className="void-input min-h-24"
-              maxLength={200}
-              value={replyContent}
-              onChange={(event) => setReplyContent(event.target.value)}
-              placeholder="Une reponse. Une fois."
-            />
-            <p className="void-muted text-sm">{200 - replyContent.length} restants</p>
-          </div>
+          {!postedReplyId ? (
+            <div className="space-y-2">
+              <label htmlFor="reply-input" className="void-label">
+                Tu peux repondre. Ou ne rien dire.
+              </label>
+              <textarea
+                id="reply-input"
+                className="void-input min-h-24"
+                maxLength={300}
+                value={replyContent}
+                onChange={(event) => setReplyContent(event.target.value)}
+                placeholder="Une voix. Une fois."
+              />
+              <p className="void-muted text-sm">{300 - replyContent.length} restants</p>
+            </div>
+          ) : (
+            <p className="void-muted text-sm">Ta voix est deposee.</p>
+          )}
 
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="void-button"
-              onClick={onReply}
-              disabled={isActioning || replyContent.trim().length === 0}
-            >
-              REPONDRE
-            </button>
+            {!postedReplyId ? (
+              <button
+                type="button"
+                className="void-button"
+                onClick={onReply}
+                disabled={isActioning || replyContent.trim().length === 0}
+              >
+                REPONDRE
+              </button>
+            ) : null}
+            {showUndo ? (
+              <button type="button" className="void-button" onClick={onUndoReply} disabled={isActioning}>
+                RETIRER ({Math.ceil(graceRemainingMs / 1000)}s)
+              </button>
+            ) : null}
             <button type="button" className="void-button" onClick={onKeep}>
               GARDER
             </button>

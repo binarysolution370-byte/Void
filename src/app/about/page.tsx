@@ -9,8 +9,8 @@ export default function AboutPage() {
         personne. Personne n&apos;applaudit.
       </p>
       <p>
-        Le silence est la fonctionnalite principale. Pas de notifications. Pas de profil. Pas de performance
-        sociale.
+        Le silence est la fonctionnalite principale. Pas de profil. Pas de performance sociale. Une seule alerte
+        possible, une seule fois: Le vide a bouge.
       </p>
       <p className="void-muted text-sm">Ecrire. Recevoir. Laisser filer.</p>
     </article>

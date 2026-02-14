@@ -4,6 +4,8 @@ import { addDays } from "@/lib/server/time";
 import { getOffering, type Offering } from "@/lib/payments/catalog";
 import { getSupabaseServerClient } from "@/lib/server/supabase";
 
+type PaymentProvider = "stripe" | "sinetpay";
+
 function computeExpiry(offering: Offering): string | null {
   if (!offering.durationDays) {
     return null;
@@ -11,36 +13,42 @@ function computeExpiry(offering: Offering): string | null {
   return addDays(new Date(), offering.durationDays).toISOString();
 }
 
-export async function savePurchaseFromPaymentIntent(params: {
+async function savePurchaseFromProviderTransaction(params: {
   sessionId: string;
-  paymentIntent: Stripe.PaymentIntent;
+  provider: PaymentProvider;
+  externalPaymentId: string;
+  offerId: string;
+  amount: number;
+  currency: string;
+  status: string;
+  metadata?: Record<string, string>;
 }) {
-  const { sessionId, paymentIntent } = params;
-  const offerId = paymentIntent.metadata.offer_id;
-  const offering = getOffering(offerId);
+  const offering = getOffering(params.offerId);
   if (!offering) {
-    throw new Error(`Unknown offer: ${offerId}`);
+    throw new Error(`Unknown offer: ${params.offerId}`);
   }
 
   const supabase = getSupabaseServerClient();
   const expiresAt = computeExpiry(offering);
-  const amount = (paymentIntent.amount_received || paymentIntent.amount) / 100;
   const purchasePayload = {
-    session_id: sessionId,
+    session_id: params.sessionId,
     feature_type: offering.featureType,
     offer_id: offering.id,
-    amount,
-    currency: (paymentIntent.currency || "eur").toUpperCase(),
-    stripe_payment_intent_id: paymentIntent.id,
-    status: paymentIntent.status,
-    metadata: paymentIntent.metadata,
+    amount: params.amount,
+    currency: params.currency.toUpperCase(),
+    stripe_payment_intent_id: params.externalPaymentId,
+    status: params.status,
+    payment_provider: params.provider,
+    external_payment_id: params.externalPaymentId,
+    metadata: params.metadata ?? {},
     expires_at: expiresAt
   };
 
   const { data: existingPurchase, error: existingError } = await supabase
     .from("purchases")
     .select("id")
-    .eq("stripe_payment_intent_id", paymentIntent.id)
+    .eq("payment_provider", params.provider)
+    .eq("external_payment_id", params.externalPaymentId)
     .maybeSingle();
 
   if (existingError) {
@@ -52,6 +60,7 @@ export async function savePurchaseFromPaymentIntent(params: {
         id: string;
       }
     | null = null;
+  let isNewPurchase = false;
 
   if (existingPurchase?.id) {
     const { data: updated, error: updateError } = await supabase
@@ -76,15 +85,59 @@ export async function savePurchaseFromPaymentIntent(params: {
       throw new Error(insertError?.message ?? "Failed to insert purchase.");
     }
     purchase = inserted;
+    isNewPurchase = true;
   }
 
-  await grantEntitlementFromOffering({
-    sessionId,
-    offering,
-    purchaseId: purchase.id
-  });
+  if (isNewPurchase) {
+    await grantEntitlementFromOffering({
+      sessionId: params.sessionId,
+      offering,
+      purchaseId: purchase.id
+    });
+  }
 
   return purchase;
+}
+
+export async function savePurchaseFromPaymentIntent(params: {
+  sessionId: string;
+  paymentIntent: Stripe.PaymentIntent;
+}) {
+  const { sessionId, paymentIntent } = params;
+  const offerId = paymentIntent.metadata.offer_id;
+  const amount = (paymentIntent.amount_received || paymentIntent.amount) / 100;
+
+  return savePurchaseFromProviderTransaction({
+    sessionId,
+    provider: "stripe",
+    externalPaymentId: paymentIntent.id,
+    offerId,
+    amount,
+    currency: paymentIntent.currency || "EUR",
+    status: paymentIntent.status,
+    metadata: paymentIntent.metadata
+  });
+}
+
+export async function savePurchaseFromSinetPay(params: {
+  sessionId: string;
+  transactionId: string;
+  offerId: string;
+  amount: number;
+  currency: string;
+  status: "succeeded" | "pending" | "failed";
+  metadata?: Record<string, string>;
+}) {
+  return savePurchaseFromProviderTransaction({
+    sessionId: params.sessionId,
+    provider: "sinetpay",
+    externalPaymentId: params.transactionId,
+    offerId: params.offerId,
+    amount: params.amount,
+    currency: params.currency,
+    status: params.status,
+    metadata: params.metadata
+  });
 }
 
 export async function grantEntitlementFromOffering(params: {

@@ -109,7 +109,10 @@ Not found/session mismatch: `404`
 Request:
 
 ```json
-{ "offerId": "long_letter_1000" }
+{
+  "offerId": "long_letter_1000",
+  "paymentMethod": "stripe"
+}
 ```
 
 Response:
@@ -134,7 +137,10 @@ Response:
 Request:
 
 ```json
-{ "paymentIntentId": "pi_..." }
+{
+  "paymentIntentId": "pi_...",
+  "provider": "stripe"
+}
 ```
 
 Response:
@@ -150,3 +156,7 @@ Returns purchase history for current session.
 ## POST `/api/payments/webhook`
 
 Stripe webhook endpoint (handles `payment_intent.succeeded`).
+
+## POST `/api/payments/sinetpay/callback`
+
+SinetPay callback endpoint for Mobile Money confirmation.

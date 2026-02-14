@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
     .from("secrets")
     .insert({
       content,
+      author_session_id: sessionId,
       is_reply: false,
       deliver_after: deliverAfter,
       is_sealed: isSealed,
@@ -115,7 +116,9 @@ export async function POST(request: NextRequest) {
       paper_id: paperId,
       ink_effect: inkEffect
     })
-    .select("id, content, created_at, is_reply, parent_secret_id, is_sealed, seal_type, paper_id, ink_effect")
+    .select(
+      "id, content, created_at, is_reply, parent_secret_id, is_sealed, seal_type, paper_id, ink_effect, author_session_id"
+    )
     .single();
 
   if (insertError || !inserted) {

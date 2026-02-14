@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getOffering } from "@/lib/payments/catalog";
 import { json } from "@/lib/server/http";
 import { getOrCreateSessionId } from "@/lib/server/session";
+import { initSinetPayPayment } from "@/lib/server/sinetpay";
 import { getStripeClient } from "@/lib/server/stripe";
 
 export async function POST(request: NextRequest) {
@@ -14,8 +15,19 @@ export async function POST(request: NextRequest) {
   }
 
   const offerId = typeof body === "object" && body !== null ? (body as { offerId?: unknown }).offerId : null;
+  const paymentMethod =
+    typeof body === "object" && body !== null ? (body as { paymentMethod?: unknown }).paymentMethod : "stripe";
+  const mobileOperator =
+    typeof body === "object" && body !== null ? (body as { mobileOperator?: unknown }).mobileOperator : undefined;
   if (typeof offerId !== "string") {
     return json({ error: "offerId is required." }, { status: 400, sessionId, generatedSession: generated });
+  }
+
+  if (typeof paymentMethod !== "string" || !["stripe", "sinetpay"].includes(paymentMethod)) {
+    return json(
+      { error: "paymentMethod must be stripe or sinetpay." },
+      { status: 400, sessionId, generatedSession: generated }
+    );
   }
 
   const offering = getOffering(offerId);
@@ -24,8 +36,38 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const stripe = getStripeClient();
     const origin = request.nextUrl.origin;
+
+    if (paymentMethod === "sinetpay") {
+      const sinet = await initSinetPayPayment({
+        amount: offering.amountEurCents,
+        description: offering.label,
+        origin,
+        mobileOperator: mobileOperator === "orange" || mobileOperator === "mtn" ? mobileOperator : undefined,
+        metadata: {
+          session_id: sessionId,
+          feature_type: offering.featureType,
+          offer_id: offering.id
+        }
+      });
+
+      return json(
+        {
+          paymentIntentId: sinet.transactionId,
+          clientSecret: null,
+          checkoutUrl: sinet.paymentUrl,
+          provider: "sinetpay",
+          offer: offering,
+          copy: {
+            title: "C'est fait.",
+            subtitle: "Le geste est enregistre."
+          }
+        },
+        { status: 200, sessionId, generatedSession: generated }
+      );
+    }
+
+    const stripe = getStripeClient();
     const paymentIntent = await stripe.paymentIntents.create({
       amount: offering.amountEurCents,
       currency: "eur",
@@ -70,6 +112,7 @@ export async function POST(request: NextRequest) {
         paymentIntentId: paymentIntent.id,
         clientSecret: paymentIntent.client_secret,
         checkoutUrl: checkoutSession.url,
+        provider: "stripe",
         offer: offering,
         copy: {
           title: "C'est fait.",

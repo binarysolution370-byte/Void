@@ -194,6 +194,8 @@ create table if not exists purchases (
   session_id text not null,
   feature_type text not null,
   offer_id text not null,
+  payment_provider text not null default 'stripe',
+  external_payment_id text,
   feature_id uuid,
   amount decimal not null,
   currency text default 'EUR',
@@ -204,9 +206,16 @@ create table if not exists purchases (
   expires_at timestamptz
 );
 
+alter table purchases add column if not exists payment_provider text not null default 'stripe';
+alter table purchases add column if not exists external_payment_id text;
+
 create unique index if not exists idx_purchases_payment_intent
   on purchases(stripe_payment_intent_id)
   where stripe_payment_intent_id is not null;
+
+create unique index if not exists idx_purchases_provider_external
+  on purchases(payment_provider, external_payment_id)
+  where external_payment_id is not null;
 
 create index if not exists idx_purchases_session_created
   on purchases(session_id, created_at desc);
@@ -354,6 +363,85 @@ select
   count(distinct session_id) as unique_buyers
 from purchases
 group by 1, 2;
+
+-- L'Echo v1.3
+alter table secrets
+  add column if not exists author_session_id text;
+
+create index if not exists idx_secrets_author_session
+  on secrets(author_session_id)
+  where author_session_id is not null;
+
+alter table replies
+  add column if not exists author_session_id text,
+  add column if not exists deleted_at timestamptz;
+
+alter table replies
+  drop constraint if exists replies_content_check;
+
+alter table replies
+  add constraint replies_content_check check (char_length(content) <= 300);
+
+create unique index if not exists idx_replies_secret_author_unique
+  on replies(secret_id, author_session_id)
+  where deleted_at is null and author_session_id is not null;
+
+create index if not exists idx_replies_secret_created
+  on replies(secret_id, created_at);
+
+create table if not exists notification_tokens (
+  id uuid primary key default gen_random_uuid(),
+  secret_id uuid not null references secrets(id) on delete cascade,
+  push_token text,
+  created_at timestamptz default now(),
+  notified_at timestamptz,
+  unique(secret_id)
+);
+
+alter table notification_tokens enable row level security;
+
+drop policy if exists "All notification tokens for anyone" on notification_tokens;
+create policy "All notification tokens for anyone"
+  on notification_tokens for all using (true) with check (true);
+
+-- Purge periodique des reponses retirees (L'Echo)
+create extension if not exists pg_cron;
+
+create or replace function cleanup_soft_deleted_replies()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  deleted_count integer := 0;
+begin
+  delete from replies
+  where deleted_at is not null
+    and deleted_at <= now() - interval '60 seconds';
+
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
+
+grant execute on function cleanup_soft_deleted_replies() to anon, authenticated, service_role;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from cron.job
+    where jobname = 'void_cleanup_soft_deleted_replies'
+  ) then
+    perform cron.schedule(
+      'void_cleanup_soft_deleted_replies',
+      '*/2 * * * *',
+      $job$select cleanup_soft_deleted_replies();$job$
+    );
+  end if;
+end
+$$;
 
 create table if not exists site_visits (
   id uuid primary key default gen_random_uuid(),

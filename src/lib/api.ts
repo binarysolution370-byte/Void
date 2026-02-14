@@ -1,6 +1,6 @@
 import { getSessionId } from "@/lib/session";
 import { sanitizePlainText } from "@/lib/sanitize";
-import type { ApiEmptyResponse, PaymentHistoryItem, PaymentIntentResponse, Secret } from "@/lib/types";
+import type { ApiEmptyResponse, PaymentHistoryItem, PaymentIntentResponse, Reply, Secret } from "@/lib/types";
 
 interface ApiErrorPayload {
   error?: string;
@@ -42,10 +42,33 @@ export async function pullSecret(): Promise<Secret | ApiEmptyResponse> {
   return apiFetch<Secret | ApiEmptyResponse>("/api/secrets/random");
 }
 
-export async function replySecret(secretId: string, content: string): Promise<Secret> {
-  return apiFetch<Secret>(`/api/secrets/${secretId}/reply`, {
+export async function replySecret(secretId: string, content: string): Promise<Reply> {
+  return apiFetch<Reply>(`/api/secrets/${secretId}/reply`, {
     method: "POST",
     body: JSON.stringify({ content: sanitizePlainText(content) })
+  });
+}
+
+export async function deleteReply(replyId: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>(`/api/replies/${replyId}`, {
+    method: "DELETE"
+  });
+}
+
+export async function getEchoReplies(secretId: string, token?: string): Promise<{ secretId: string; replies: Reply[] }> {
+  const suffix = token ? `?t=${encodeURIComponent(token)}` : "";
+  return apiFetch<{ secretId: string; replies: Reply[] }>(`/api/secrets/${secretId}/replies${suffix}`);
+}
+
+export async function setEchoOptIn(
+  secretId: string,
+  enabled: boolean,
+  pushToken?: string,
+  pushSubscription?: unknown
+): Promise<{ ok: true; enabled: boolean }> {
+  return apiFetch<{ ok: true; enabled: boolean }>(`/api/secrets/${secretId}/echo-opt-in`, {
+    method: "POST",
+    body: JSON.stringify({ enabled, pushToken, pushSubscription })
   });
 }
 
@@ -55,17 +78,24 @@ export async function releaseSecret(secretId: string): Promise<{ ok: true }> {
   });
 }
 
-export async function createPaymentIntent(offerId: string): Promise<PaymentIntentResponse> {
+export async function createPaymentIntent(
+  offerId: string,
+  paymentMethod: "stripe" | "sinetpay" = "stripe",
+  mobileOperator?: "orange" | "mtn"
+): Promise<PaymentIntentResponse> {
   return apiFetch<PaymentIntentResponse>("/api/payments/create-payment-intent", {
     method: "POST",
-    body: JSON.stringify({ offerId })
+    body: JSON.stringify({ offerId, paymentMethod, mobileOperator })
   });
 }
 
-export async function confirmPaymentIntent(paymentIntentId: string): Promise<{ ok: boolean; message: string }> {
+export async function confirmPaymentIntent(
+  paymentIntentId: string,
+  provider: "stripe" | "sinetpay" = "stripe"
+): Promise<{ ok: boolean; message: string }> {
   return apiFetch<{ ok: boolean; message: string }>("/api/payments/confirm", {
     method: "POST",
-    body: JSON.stringify({ paymentIntentId })
+    body: JSON.stringify({ paymentIntentId, provider })
   });
 }
 

@@ -21,6 +21,13 @@
    - `STRIPE_SECRET_KEY`
    - `STRIPE_WEBHOOK_SECRET`
    - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (future client-side Stripe Elements)
+   - `SINETPAY_API_KEY`
+   - `SINETPAY_SITE_ID`
+   - `SINETPAY_BASE_URL`
+   - `SINETPAY_NOTIFY_PATH`
+   - `SINETPAY_RETURN_PATH`
+   - `SINETPAY_CURRENCY`
+   - `NEXT_PUBLIC_SINETPAY_ENABLED`
 3. Optional Upstash:
    - `UPSTASH_REDIS_REST_URL`
    - `UPSTASH_REDIS_REST_TOKEN`
@@ -52,6 +59,8 @@ Open `http://localhost:3000`.
 6. In Stripe dashboard, configure webhook URL:
    - `https://YOUR_DOMAIN/api/payments/webhook`
    - Events: `payment_intent.succeeded`
+7. In SinetPay dashboard, configure notification URL:
+   - `https://YOUR_DOMAIN/api/payments/sinetpay/callback`
 
 ## 5. Post-deploy checks
 

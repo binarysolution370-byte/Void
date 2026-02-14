@@ -8,6 +8,7 @@ export interface Database {
           id: string;
           content: string;
           created_at: string;
+          author_session_id: string | null;
           is_delivered: boolean;
           delivered_at: string | null;
           receiver_session_id: string | null;
@@ -24,6 +25,7 @@ export interface Database {
           id?: string;
           content: string;
           created_at?: string;
+          author_session_id?: string | null;
           is_delivered?: boolean;
           delivered_at?: string | null;
           receiver_session_id?: string | null;
@@ -40,6 +42,7 @@ export interface Database {
           id?: string;
           content?: string;
           created_at?: string;
+          author_session_id?: string | null;
           is_delivered?: boolean;
           delivered_at?: string | null;
           receiver_session_id?: string | null;
@@ -58,28 +61,48 @@ export interface Database {
           id: string;
           secret_id: string;
           content: string;
+          author_session_id: string | null;
           created_at: string;
-          is_delivered: boolean;
-          delivered_at: string | null;
-          receiver_session_id: string | null;
+          deleted_at: string | null;
         };
         Insert: {
           id?: string;
           secret_id: string;
           content: string;
+          author_session_id?: string | null;
           created_at?: string;
-          is_delivered?: boolean;
-          delivered_at?: string | null;
-          receiver_session_id?: string | null;
+          deleted_at?: string | null;
         };
         Update: {
           id?: string;
           secret_id?: string;
           content?: string;
+          author_session_id?: string | null;
           created_at?: string;
-          is_delivered?: boolean;
-          delivered_at?: string | null;
-          receiver_session_id?: string | null;
+          deleted_at?: string | null;
+        };
+      };
+      notification_tokens: {
+        Row: {
+          id: string;
+          secret_id: string;
+          push_token: string | null;
+          created_at: string;
+          notified_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          secret_id: string;
+          push_token?: string | null;
+          created_at?: string;
+          notified_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          secret_id?: string;
+          push_token?: string | null;
+          created_at?: string;
+          notified_at?: string | null;
         };
       };
       kept_secrets: {
@@ -108,6 +131,8 @@ export interface Database {
           session_id: string;
           feature_type: string;
           offer_id: string;
+          payment_provider: string;
+          external_payment_id: string | null;
           feature_id: string | null;
           amount: number;
           currency: string;
@@ -122,6 +147,8 @@ export interface Database {
           session_id: string;
           feature_type: string;
           offer_id: string;
+          payment_provider?: string;
+          external_payment_id?: string | null;
           feature_id?: string | null;
           amount: number;
           currency?: string;
@@ -136,6 +163,8 @@ export interface Database {
           session_id?: string;
           feature_type?: string;
           offer_id?: string;
+          payment_provider?: string;
+          external_payment_id?: string | null;
           feature_id?: string | null;
           amount?: number;
           currency?: string;
@@ -376,6 +405,7 @@ export interface Database {
           id: string;
           content: string;
           created_at: string;
+          author_session_id: string | null;
           is_delivered: boolean;
           delivered_at: string | null;
           receiver_session_id: string | null;
@@ -405,6 +435,7 @@ export interface Database {
           id: string;
           content: string;
           created_at: string;
+          author_session_id: string | null;
           is_delivered: boolean;
           delivered_at: string | null;
           receiver_session_id: string | null;

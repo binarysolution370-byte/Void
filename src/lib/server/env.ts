@@ -28,3 +28,14 @@ export function getStripeWebhookSecret(): string {
 export function getAnalyticsDashboardKey(): string {
   return required("ANALYTICS_DASHBOARD_KEY");
 }
+
+export function getSinetPayEnv() {
+  return {
+    apiKey: required("SINETPAY_API_KEY"),
+    siteId: required("SINETPAY_SITE_ID"),
+    baseUrl: process.env.SINETPAY_BASE_URL || "https://api-checkout.cinetpay.com",
+    notifyPath: process.env.SINETPAY_NOTIFY_PATH || "/api/payments/sinetpay/callback",
+    returnPath: process.env.SINETPAY_RETURN_PATH || "/void",
+    currency: process.env.SINETPAY_CURRENCY || "XOF"
+  };
+}

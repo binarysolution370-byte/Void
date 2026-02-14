@@ -96,8 +96,12 @@ export function KeptSecretsList() {
   useEffect(() => {
     const ritual = searchParams.get("ritual");
     const pi = searchParams.get("pi");
-    if (ritual === "done" && pi) {
-      confirmPaymentIntent(pi)
+    const tx = searchParams.get("tx");
+    const provider = searchParams.get("provider");
+    if (ritual === "done" && (pi || tx)) {
+      const id = pi || tx || "";
+      const effectiveProvider = provider === "sinetpay" ? "sinetpay" : "stripe";
+      confirmPaymentIntent(id, effectiveProvider)
         .then((result) => {
           setRitualStatus(result.message || "C'est fait.");
           return getPaymentHistory();

@@ -5,6 +5,7 @@ import { containsBlockedWords, sanitizeSecretText } from "@/lib/server/sanitize"
 import { getSupabaseServerClient } from "@/lib/server/supabase";
 import { json } from "@/lib/server/http";
 import { getBlockedWords } from "@/lib/server/env";
+import { triggerFirstEchoNotification } from "@/lib/server/echo";
 
 interface RouteParams {
   params: {
@@ -41,9 +42,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const content = sanitizeSecretText(rawContent);
-  if (content.length < 1 || content.length > 200) {
+  if (content.length < 1 || content.length > 300) {
     return json(
-      { error: "content must contain between 1 and 200 characters." },
+      { error: "content must contain between 1 and 300 characters." },
       { status: 400, sessionId, generatedSession: generated }
     );
   }
@@ -56,33 +57,57 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   }
 
   const supabase = getSupabaseServerClient();
-  const { data, error } = await supabase.rpc("create_reply", {
-    p_target_secret_id: params.id,
-    p_content: content
-  });
+  const { data: secret, error: secretError } = await supabase
+    .from("secrets")
+    .select("id, author_session_id")
+    .eq("id", params.id)
+    .maybeSingle();
 
-  if (error) {
-    if (error.message.includes("reply_limit_reached")) {
-      return json(
-        { error: "This secret already received its allowed reply." },
-        { status: 409, sessionId, generatedSession: generated }
-      );
-    }
-    return json({ error: error.message }, { status: 500, sessionId, generatedSession: generated });
+  if (secretError) {
+    return json({ error: secretError.message }, { status: 500, sessionId, generatedSession: generated });
   }
 
-  if (!data || data.length === 0) {
+  if (!secret) {
     return json({ error: "Secret not found." }, { status: 404, sessionId, generatedSession: generated });
   }
 
-  const inserted = data[0];
+  if (secret.author_session_id && secret.author_session_id === sessionId) {
+    return json(
+      { error: "You cannot reply to your own secret." },
+      { status: 403, sessionId, generatedSession: generated }
+    );
+  }
+
+  const { data: inserted, error: insertError } = await supabase
+    .from("replies")
+    .insert({
+      secret_id: params.id,
+      content,
+      author_session_id: sessionId
+    })
+    .select("id, secret_id, content, created_at")
+    .single();
+
+  if (insertError || !inserted) {
+    if (insertError?.code === "23505") {
+      return json(
+        { error: "You already replied to this secret." },
+        { status: 409, sessionId, generatedSession: generated }
+      );
+    }
+    return json({ error: insertError?.message ?? "Reply insert failed." }, { status: 500, sessionId, generatedSession: generated });
+  }
+
+  await triggerFirstEchoNotification({
+    secretId: params.id
+  });
+
   return json(
     {
       id: inserted.id,
+      secret_id: inserted.secret_id,
       content: inserted.content,
-      created_at: inserted.created_at,
-      is_reply: inserted.is_reply,
-      parent_secret_id: inserted.parent_secret_id
+      created_at: inserted.created_at
     },
     {
       status: 201,
