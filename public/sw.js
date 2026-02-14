@@ -1,3 +1,12 @@
+self.addEventListener("install", (event) => {
+  // Ensure updated SW takes control quickly (push behavior must match backend).
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("push", (event) => {
   let data = { title: "VOID", body: "Le vide a bouge.", url: "/" };
   try {

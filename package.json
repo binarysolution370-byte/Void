@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "node scripts/smoke-test.mjs",
-    "smoke:messages": "node scripts/smoke-messages.mjs"
+    "smoke:messages": "node scripts/smoke-messages.mjs",
+    "diagnose:prod": "node scripts/prod-diagnose.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
