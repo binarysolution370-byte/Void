@@ -126,18 +126,14 @@ export function KeptSecretsList() {
   return (
     <section className="void-container space-y-5" aria-labelledby="kept-title">
       <header className="pt-2">
-        <h1
-          id="kept-title"
-          className="text-[32px] leading-tight"
-          style={{ fontFamily: "var(--void-font-display)", fontWeight: 800, letterSpacing: "-0.02em" }}
-        >
+        <h1 id="kept-title" className="void-title-lg">
           MON VIDE
         </h1>
-        <p className="mt-2 text-[14px]" style={{ fontWeight: 300, fontStyle: "italic", color: "var(--void-text-ghost)" }}>
+        <p className="void-subtext mt-2">
           les secrets que tu as choisi de ne pas oublier
         </p>
-        <div style={{ borderTop: "1px solid var(--void-border)", marginTop: 24 }} />
-        <p className="mt-3 text-[11px]" style={{ color: "var(--void-text-ghost)", fontWeight: 300 }}>
+        <div className="void-divider mt-6" />
+        <p className="void-meta mt-3">
           {itemCountLabel}
         </p>
         {hasItems ? (
@@ -154,57 +150,25 @@ export function KeptSecretsList() {
 
       {!hasItems ? (
         <div className="text-center">
-          <p style={{ fontStyle: "italic", fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 15 }}>
+          <p className="void-empty" style={{ fontSize: 15 }}>
             tu n&apos;as encore rien garde.
           </p>
           <p className="mt-3">
-            <a
-              href="/"
-              style={{
-                fontFamily: "var(--void-font-display)",
-                fontWeight: 700,
-                fontSize: 11,
-                letterSpacing: "0.1em",
-                color: "var(--void-glow)",
-                textTransform: "uppercase",
-                textDecoration: "underline",
-                textUnderlineOffset: 6
-              }}
-            >
-              ← retourner au puits
-            </a>
+            <a href="/" className="void-link">{"\u2190"} retourner au puits</a>
           </p>
         </div>
       ) : (
         <ul className="space-y-0" aria-label="Secrets gardes">
           {items.map((item) => (
-            <li
-              key={item.id}
-              style={{
-                borderBottom: "1px solid var(--void-border)",
-                padding: "16px 0 16px 20px",
-                borderLeft: "2px solid var(--void-border-glow)"
-              }}
-            >
-              <p className="whitespace-pre-wrap break-words" style={{ fontWeight: 300, fontStyle: "italic", fontSize: 16, lineHeight: 1.7 }}>
+            <li key={item.id} className="void-kept-item">
+              <p className="void-kept-text whitespace-pre-wrap break-words">
                 {item.content}
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                <time style={{ color: "var(--void-text-ghost)", fontWeight: 300, fontSize: 11 }} dateTime={item.keptAt}>
+                <time className="void-meta" dateTime={item.keptAt}>
                   {new Date(item.keptAt).toLocaleString("fr-FR")}
                 </time>
-                <button
-                  type="button"
-                  onClick={() => onDelete(item.id)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "var(--void-text-ghost)",
-                    fontWeight: 300,
-                    fontSize: 11,
-                    cursor: "pointer"
-                  }}
-                >
+                <button type="button" onClick={() => onDelete(item.id)} className="void-kept-delete">
                   supprimer
                 </button>
               </div>
@@ -213,10 +177,8 @@ export function KeptSecretsList() {
         </ul>
       )}
 
-      <details style={{ borderTop: "1px solid var(--void-border)", paddingTop: 16 }}>
-        <summary className="text-[11px]" style={{ cursor: "pointer", color: "var(--void-text-ghost)", letterSpacing: "0.1em", fontWeight: 300 }}>
-          rituels
-        </summary>
+      <details className="void-details">
+        <summary>rituels</summary>
         <div className="mt-3 space-y-2">
           <OfferPaper unlocked={ritualUnlocked} />
           <OfferGift unlocked={ritualUnlocked && giftFlag} />
@@ -240,3 +202,5 @@ export function KeptSecretsList() {
     </section>
   );
 }
+
+

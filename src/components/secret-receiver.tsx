@@ -229,7 +229,7 @@ export function SecretReceiver() {
 
   return (
     <section aria-label="Puiser un secret">
-      <p className="void-sep">— ou —</p>
+      <p className="void-sep">&mdash; ou &mdash;</p>
       <div className="flex justify-center">
         <button type="button" className="void-btn-outline" onClick={onPull} disabled={isLoading}>
           {isLoading ? "..." : "PUISER"}
@@ -238,10 +238,10 @@ export function SecretReceiver() {
 
       {!currentSecret ? (
         <div className="mt-5 text-center">
-          <p style={{ fontStyle: "italic", fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 16 }}>
+          <p className="void-empty">
             {status || "le vide est silencieux pour l'instant."}
           </p>
-          <p style={{ marginTop: 8, fontWeight: 300, fontSize: 10, letterSpacing: "0.1em", color: "var(--void-text-ghost)" }}>
+          <p className="void-empty-sub">
             reviens plus tard
           </p>
         </div>
@@ -310,24 +310,8 @@ export function SecretReceiver() {
           </article>
 
           {replyOpen && !postedReplyId ? (
-            <div className="void-glass void-form relative" style={{ borderRadius: "12px", padding: 18 }}>
-              <button
-                type="button"
-                aria-label="Fermer"
-                onClick={() => setReplyOpen(false)}
-                style={{
-                  position: "absolute",
-                  top: 10,
-                  right: 12,
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--void-text-ghost)",
-                  cursor: "pointer",
-                  fontSize: 18
-                }}
-              >
-                ×
-              </button>
+            <div className="void-glass void-glass--strong void-form void-form--compact relative">
+              <button type="button" aria-label="Fermer" onClick={() => setReplyOpen(false)} className="void-close">&times;</button>
               <textarea
                 aria-label="Reponse"
                 className="void-textarea"
@@ -340,7 +324,7 @@ export function SecretReceiver() {
                 {Math.max(0, 300 - replyContent.length)}
               </div>
               <div className="mt-3 flex justify-end">
-                <button type="button" className="void-btn-primary" style={{ width: "auto", paddingInline: 22 }} onClick={onReply} disabled={isActioning || replyContent.trim().length === 0}>
+                <button type="button" className="void-btn-primary void-btn-primary--inline" onClick={onReply} disabled={isActioning || replyContent.trim().length === 0}>
                   ENVOYER
                 </button>
               </div>
@@ -348,7 +332,7 @@ export function SecretReceiver() {
           ) : null}
 
           {postedReplyId ? (
-            <p style={{ fontWeight: 300, color: "var(--void-text-ghost)", fontSize: 12, fontStyle: "italic" }}>
+            <p className="void-note">
               ta voix est deposee.
             </p>
           ) : null}
@@ -366,10 +350,11 @@ export function SecretReceiver() {
       )}
 
       {status ? (
-        <p className="mt-3 text-[12px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300 }} aria-live="polite">
+        <p className="void-status" aria-live="polite">
           {status}
         </p>
       ) : null}
     </section>
   );
 }
+

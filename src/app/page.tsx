@@ -6,7 +6,7 @@ export default function HomePage() {
   return (
     <div className="void-container space-y-5">
       <header className="pt-2 void-reveal-item" style={{ ["--void-stagger" as never]: 0 }}>
-        <h1 className="text-balance font-[800] tracking-[-0.02em] text-[32px] leading-tight" style={{ fontFamily: "var(--void-font-display)" }}>
+        <h1 className="void-title-lg text-balance">
           laisse tomber.
           <br />
           tire. repars.

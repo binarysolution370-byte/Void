@@ -41,24 +41,20 @@ export function EchoThread({ secretId }: EchoThreadProps) {
   return (
     <section className="void-container space-y-4" aria-labelledby="echo-title">
       <header className="pt-2">
-        <h1
-          id="echo-title"
-          className="text-balance text-[32px] leading-tight"
-          style={{ fontFamily: "var(--void-font-display)", fontWeight: 800, letterSpacing: "-0.02em" }}
-        >
+        <h1 id="echo-title" className="void-title-lg text-balance">
           l&apos;echo
         </h1>
-        <p className="mt-2 text-[13px]" style={{ color: "var(--void-text-secondary)", fontWeight: 300, fontStyle: "italic" }}>
+        <p className="void-subtext void-subtext--secondary mt-2">
           le vide a bouge.
         </p>
       </header>
       {status ? (
-        <p style={{ color: "var(--void-text-ghost)", fontWeight: 300, fontStyle: "italic" }}>{status.toLowerCase()}</p>
+        <p className="void-note">{status.toLowerCase()}</p>
       ) : null}
       <div className="space-y-3">
         {replies.map((reply) => (
-          <article key={reply.id} className="void-glass" style={{ borderRadius: "20px", padding: "18px 18px" }}>
-            <p className="whitespace-pre-wrap break-words" style={{ fontWeight: 300, fontStyle: "italic", fontSize: 16, lineHeight: 1.8 }}>
+          <article key={reply.id} className="void-glass void-glass--strong" style={{ borderRadius: "20px", padding: "18px 18px" }}>
+            <p className="whitespace-pre-wrap break-words void-kept-text" style={{ lineHeight: 1.8 }}>
               {reply.content}
             </p>
           </article>
